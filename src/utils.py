@@ -36,12 +36,6 @@ def standerlize(x):
     x = (x - x_mean) / (x_std + 0.000001)
     return x
 
-# def evaluate_fairness(y_cf1, y_cf2):  # y_cf1: n x samplenum
-#     mmd = mmd2_lin(y_cf1, y_cf2, 0.3)
-#     wass, _ = wasserstein(y_cf1, y_cf2, device, cuda=True)
-#
-#     return mmd, wass
-
 def data_statistics(path, name):
     print('checking dataset: ', name)
     if name == 'law':
@@ -313,94 +307,9 @@ def penalty(logits, y):
     grad = autograd.grad(loss, [scale], create_graph=True)[0]
     return torch.sum(grad**2)
 
-# def mmd2_lin(Xt, Xc,p):
-#     ''' Linear MMD '''
-#     mean_control = torch.mean(Xc,0)
-#     mean_treated = torch.mean(Xt,0)
-#
-#     mmd = torch.sum((2.0*p*mean_treated - 2.0*(1.0-p)*mean_control) ** 2)
-#
-#     return mmd
-
 def mmd_linear(X, Y, p=0.003):
-    """MMD using linear kernel (i.e., k(x,y) = <x,y>)
-    Note that this is not the original linear MMD, only the reformulated and faster version.
-    The original version is:
-        def mmd_linear(X, Y):
-            XX = np.dot(X, X.T)
-            YY = np.dot(Y, Y.T)
-            XY = np.dot(X, Y.T)
-            return XX.mean() + YY.mean() - 2 * XY.mean()
-
-    Arguments:
-        X {[n_sample1, dim]} -- [X matrix]
-        Y {[n_sample2, dim]} -- [Y matrix]
-
-    Returns:
-        [scalar] -- [MMD value]
-    """
     delta = (X.mean(0) - Y.mean(0))/p
     mmd = delta.dot(delta.T)
-    return mmd
-
-
-def mmd(x, y, gamma=0.3, kernel='rbf'):
-    # http://www.gatsby.ucl.ac.uk/~gretton/mmd/mmd.htm
-
-    n, d = x.shape
-    m, d2 = y.shape
-    assert d == d2
-
-    # gamma
-    # if gamma is None:
-    #     dists = torch.pdist(torch.cat([x, y], dim=0))
-    #     gamma = dists[:100].median() / 2
-
-    xy = torch.cat([x.detach(), y.detach()], dim=0)
-    dists = torch.cdist(xy, xy, p=2.0)
-    # we are a bit sloppy here as we just keep the diagonal and everything twice
-    # note that sigma should be squared in the RBF to match the Gretton et al heuristic
-    k = torch.exp((-1 / (2 * gamma ** 2)) * dists ** 2) + torch.eye(n + m).to(x.device) * 1e-5
-    k_x = k[:n, :n]
-    k_y = k[n:, n:]
-    k_xy = k[:n, n:]
-    # The diagonals are always 1 (up to numerical error, this is (3) in Gretton et al.)
-    # note that their code uses the biased (and differently scaled mmd)
-    mmd = k_x.sum() / (n * (n - 1)) + k_y.sum() / (m * (m - 1)) - 2 * k_xy.sum() / (n * m)
-    # n, d = x.shape
-    # m, d2 = y.shape
-    # assert d == d2
-    #
-    # xx, yy, zz = torch.mm(x, x.t()), torch.mm(y, y.t()), torch.mm(x, y.t())
-    # rx = (xx.diag().unsqueeze(0).expand_as(xx))
-    # ry = (yy.diag().unsqueeze(0).expand_as(yy))
-    #
-    # dxx = rx.t() + rx - 2. * xx  # Used for A in (1)
-    # dyy = ry.t() + ry - 2. * yy  # Used for B in (1)
-    # dxy = rx.t() + ry - 2. * zz  # Used for C in (1)
-    #
-    # XX, YY, XY = (torch.zeros(xx.shape).to(device),
-    #               torch.zeros(xx.shape).to(device),
-    #               torch.zeros(xx.shape).to(device))
-    #
-    # if kernel == "multiscale":
-    #
-    #     bandwidth_range = [0.2, 0.5, 0.9, 1.3]
-    #     for a in bandwidth_range:
-    #         XX += a ** 2 * (a ** 2 + dxx) ** -1
-    #         YY += a ** 2 * (a ** 2 + dyy) ** -1
-    #         XY += a ** 2 * (a ** 2 + dxy) ** -1
-    #
-    # if kernel == "rbf":
-    #     # MMD using rbf (gaussian) kernel (i.e., k(x,y) = exp(-gamma * ||x-y||^2 / 2))
-    #     bandwidth_range = [10, 15, 20, 50]
-    #     for a in bandwidth_range:
-    #         XX += torch.exp(-gamma * 0.5 * dxx / a)
-    #         YY += torch.exp(-gamma * 0.5 * dyy / a)
-    #         XY += torch.exp(-gamma * 0.5 * dxy / a)
-    #
-    # mmd = XX.mean() + YY.mean() - 2 * XY.mean()  # torch.mean(XX + YY - 2. * XY)
-
     return mmd
 
 def pdist(sample_1, sample_2, norm=2, eps=1e-5):
@@ -439,22 +348,9 @@ def pdist(sample_1, sample_2, norm=2, eps=1e-5):
 def wasserstein(x, y, device, p=0.5, lam=10, its=10, sq=False, backpropT=False, cuda=False, scal=0.005):
     """return W dist between x and y"""
     '''distance matrix M'''
-    # from scipy.stats import wasserstein_distance
-    # xx = x.view(-1).cpu().detach().numpy()
-    # yy = y.view(-1).cpu().detach().numpy()
-    # wd = wasserstein_distance(xx, yy)
-    # wd = torch.tensor(wd, dtype=torch.float)
-    # if cuda:
-    #     wd = wd.to(device)
-    # return wd, np.NaN
 
     nx = x.shape[0]
     ny = y.shape[0]
-
-    #x = x.squeeze()
-    #y = y.squeeze()
-
-    #    pdist = torch.nn.PairwiseDistance(p=2)
 
     M = pdist(x, y)  # distance_matrix(x,y,p=2)
 
@@ -469,8 +365,6 @@ def wasserstein(x, y, device, p=0.5, lam=10, its=10, sq=False, backpropT=False, 
     row = delta * torch.ones(M[0:1, :].shape).to(device)
     col = torch.cat([delta * torch.ones(M[:, 0:1].shape).to(device), torch.zeros((1, 1)).to(device)], 0)
     if cuda:
-        #row = row.cuda()
-        #col = col.cuda()
         row = row.to(device)
         col = col.to(device)
     Mt = torch.cat([M, row], 0)
@@ -484,9 +378,6 @@ def wasserstein(x, y, device, p=0.5, lam=10, its=10, sq=False, backpropT=False, 
     Mlam = eff_lam * Mt
     temp_term = torch.ones(1) * 1e-6
     if cuda:
-        #temp_term = temp_term.cuda()
-        #a = a.cuda()
-        #b = b.cuda()
         temp_term = temp_term.to(device)
         a = a.to(device)
         b = b.to(device)
@@ -499,11 +390,9 @@ def wasserstein(x, y, device, p=0.5, lam=10, its=10, sq=False, backpropT=False, 
     for i in range(its):
         u = 1.0 / (ainvK.matmul(b / torch.t(torch.t(u).matmul(K))))
         if cuda:
-            #u = u.cuda()
             u = u.to(device)
     v = b / (torch.t(torch.t(u).matmul(K)))
     if cuda:
-        #v = v.cuda()
         v = v.to(device)
 
     upper_t = u * (torch.t(v) * K).detach()
@@ -513,7 +402,6 @@ def wasserstein(x, y, device, p=0.5, lam=10, its=10, sq=False, backpropT=False, 
     D /= scal
 
     if cuda:
-        #D = D.cuda()
         D = D.to(device)
 
     return D, Mlam
