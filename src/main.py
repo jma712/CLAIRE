@@ -19,7 +19,7 @@ import utils
 import pickle
 import torch.nn.functional as F
 
-parser = argparse.ArgumentParser(description='Counterfactual fairness with no explicit prior knowledge')
+parser = argparse.ArgumentParser(description='Counterfactual fairness with no explicit prior knowledge)
 parser.add_argument('--nocuda', type=int, default=0, help='Disables CUDA training.')
 parser.add_argument('--dataset', default='law', help='Dataset name')  # 'law', 'adult', 'synthetic
 parser.add_argument('--epochs', type=int, default=1001
@@ -1032,7 +1032,7 @@ def exp_real(path, exp_num=2):
         if type_y == 'class':
             y_pred_test = torch.round(y_pred_test)
         eval_result_claire = evaluate_pred_clf(data_y[tst_idx].view(-1).cpu().detach().numpy(),
-                                               y_pred_test.cpu().detach().numpy(), metrics_set)  # !!!!! remove later
+                                               y_pred_test.cpu().detach().numpy(), metrics_set)  
         print('========== ' + 'CLAIRE' + '============')
         for k in eval_result_claire:
             print(k, ': ', eval_result_claire[k])
