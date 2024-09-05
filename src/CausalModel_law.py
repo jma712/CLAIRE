@@ -53,19 +53,19 @@ class CausalModel_law(PyroModule):
         if self.one_hot:
             dim_race = 3
 
-        self.pi = pyro.param(self.model_name + "_" + "pi", torch.tensor([0.4, 0.3, 0.3]).to(device))  # S~Cate(pi)
+        self.pi = pyro.param(self.model_name + "_" + "pi", torch.tensor([0.4, 0.3, 0.3])).to(device)  # S~Cate(pi)
 
-        self.b_g = pyro.param(self.model_name + "_" + "b_g", torch.tensor(0.).to(device))
-        self.w_g_k = pyro.param(self.model_name + "_" + "w_g_k", torch.tensor(0.).to(device))
-        self.w_g_r = pyro.param(self.model_name + "_" + "w_g_r", torch.zeros(dim_race, 1).to(device))
-        self.sigma_g = pyro.param(self.model_name + "_" + "sigma_g", torch.tensor(1.).to(device))
+        self.b_g = pyro.param(self.model_name + "_" + "b_g", torch.tensor(0.)).to(device)
+        self.w_g_k = pyro.param(self.model_name + "_" + "w_g_k", torch.tensor(0.)).to(device)
+        self.w_g_r = pyro.param(self.model_name + "_" + "w_g_r", torch.zeros(dim_race, 1)).to(device)
+        self.sigma_g = pyro.param(self.model_name + "_" + "sigma_g", torch.tensor(1.)).to(device)
 
-        self.b_l = pyro.param(self.model_name + "_" + "b_l", torch.tensor(0.).to(device))
-        self.w_l_k = pyro.param(self.model_name + "_" + "w_l_k", torch.tensor(0.).to(device))
-        self.w_l_r = pyro.param(self.model_name + "_" + "w_l_r", torch.zeros(dim_race, 1).to(device))
+        self.b_l = pyro.param(self.model_name + "_" + "b_l", torch.tensor(0.)).to(device)
+        self.w_l_k = pyro.param(self.model_name + "_" + "w_l_k", torch.tensor(0.)).to(device)
+        self.w_l_r = pyro.param(self.model_name + "_" + "w_l_r", torch.zeros(dim_race, 1)).to(device)
 
-        self.w_f_k = pyro.param(self.model_name + "_" + "w_f_k", torch.tensor(0.).to(device))
-        self.w_f_r = pyro.param(self.model_name + "_" + "w_f_r", torch.zeros(dim_race, 1).to(device))
+        self.w_f_k = pyro.param(self.model_name + "_" + "w_f_k", torch.tensor(0.)).to(device)
+        self.w_f_r = pyro.param(self.model_name + "_" + "w_f_r", torch.zeros(dim_race, 1)).to(device)
 
         n = len(data_race)
         with pyro.plate('observe_data', size=n, device=device):
@@ -75,7 +75,6 @@ class CausalModel_law(PyroModule):
             if self.one_hot:
                 race_out, dim_race = to_onehot(data_race.long(), 3)
                 race_out = race_out.float()
-
             gpa_mean = self.b_g + self.w_g_k * knowledge + (race_out.view(-1,dim_race) @ self.w_g_r).view(-1)
             sat_mean = torch.exp(self.b_l + self.w_l_k * knowledge + (race_out.view(-1,dim_race) @ self.w_l_r).view(-1))
             fya_mean = self.w_f_k * knowledge + (race_out.view(-1,dim_race) @ self.w_f_r).view(-1)

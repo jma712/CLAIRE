@@ -19,7 +19,7 @@ import utils
 import pickle
 import torch.nn.functional as F
 
-parser = argparse.ArgumentParser(description='Counterfactual fairness with no explicit prior knowledge)
+parser = argparse.ArgumentParser(description='Counterfactual fairness with no explicit prior knowledge')
 parser.add_argument('--nocuda', type=int, default=0, help='Disables CUDA training.')
 parser.add_argument('--dataset', default='law', help='Dataset name')  # 'law', 'adult', 'synthetic
 parser.add_argument('--epochs', type=int, default=1001
@@ -220,7 +220,7 @@ def get_intervene_data_prob(cm_model, guide, data_select, index_select, latent_n
     n_select = len(index_select)
     # get latent variables for select data
     data_guide = guide()
-    data_latent = {name: data_guide[name][index_select] for name in latent_names}  # {'latent': sampled}
+    data_latent = {name: data_guide[name].to(device)[index_select] for name in latent_names}  # {'latent': sampled}
     data_nondes = {name: data_select['data'][name] for name in nondes_names}  # non-descendant observed variables
     data_nondes.update(data_latent)
     data_des = {name: None for name in des_name}
@@ -702,12 +702,12 @@ def train_cm_prob(model, data_save, trn_idx, path_cm_model, path_cm_param, train
             print(name, pyro.param(name))
 
         # save
+        
         save_flag = True
         if save_flag:
             torch.save({"model": model.state_dict(), "guide": guide}, path_cm_model)
             pyro.get_param_store().save(path_cm_param)
             print('saved causal model in: ', path_cm_model)
-
     else:  # load
         saved_model_dict = torch.load(path_cm_model)
         model.load_state_dict(saved_model_dict['model'])
@@ -1060,5 +1060,3 @@ if __name__ == '__main__':
     elif args.dataset == 'adult':
         path = '../dataset/adult.data'
         exp_real(path, exp_num=exp_num)
-
-
